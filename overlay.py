@@ -2,8 +2,8 @@ from guizero import App, Text, Box
 
 import socket
 import logging
-from instruments import SignalGeneratorOverlay
-from AutomatedTesting.Instruments.InstrumentConfig import sdg2122x, e4433b
+from instruments import SignalGeneratorOverlay, PowerSupplyOverlay
+from AutomatedTesting.Instruments.InstrumentConfig import sdg2122x, e4433b, psu2, psu3
 
 
 
@@ -18,6 +18,8 @@ NETWORK_TIMEOUT = 1
 # Set instruments for interactive use
 sdg2122x.only_software_control = False
 e4433b.only_software_control = False
+psu2.only_software_control = False
+psu3.only_software_control = False
 
 
 app = App(title="hello world", width=1920, height=1080, bg="green")
@@ -68,6 +70,10 @@ def handle_connection():
                         boxes[data] = SignalGeneratorOverlay(sdg2122x, 2, bottom_box)
                     elif data == "e4433b":
                         boxes[data] = SignalGeneratorOverlay(e4433b, 1, bottom_box)
+                    elif data == "psu2":
+                        boxes[data] = PowerSupplyOverlay(psu2, 1, bottom_box)
+                    elif data == "psu3":
+                        boxes[data] = PowerSupplyOverlay(psu3, 1, bottom_box)
                     else:
                         raise NotImplementedError
            
@@ -83,5 +89,5 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
     sock.listen()
     sock.settimeout(0.25)
     bottom_box.repeat(NETWORK_TIMEOUT * 1000, handle_connection)
-    bottom_box.repeat(250, update)
+    #bottom_box.repeat(500, update)
     app.display()
