@@ -6,6 +6,7 @@ from AutomatedTesting.Instruments.BaseInstrument import BaseInstrument
 from dataclasses import dataclass
 import pyvisa
 import time
+from threading import Thread
 
 
 TEXT_COLOUR = "black"
@@ -18,9 +19,24 @@ SUB_SIZE = 24
 
 
 class Overlay:
-    def __init__(self, parent_box: Box):
+    def __init__(self, instrument, parent_box: Box):
+        if not instrument.is_connected():
+            # Need to open connection to instrument
+            instrument.initialise()
+        self.parent_box = parent_box
         self.main_box = Box(parent_box, align="left",
                             border=5, width=480, height="fill")
+        self.get_info_thread = Thread(
+            target=self.get_info, args=[parent_box], daemon=True
+        )
+        
+
+    def get_info(self):
+        """
+        Retrieves all the information needed to update the GUI as this might take a long time
+        """
+        raise NotImplementedError
+
 
     def update(self):
         raise NotImplementedError
@@ -35,25 +51,34 @@ class SignalGeneratorOverlay(Overlay):
         Takes an empty box, starts connection to instrument (if needed)
         and connects the callback function
         """
-        if not instrument.is_connected():
-            # Need to open connection to instrument
-            instrument.initialise()
-        super().__init__(parent_box)
+        self.event_name = f"<<{instrument.name}_{channel_number}>>"
+
+        super().__init__(instrument, parent_box)
         self.channel = instrument.reserve_channel(channel_number, "Overlay")
         self.title = Text(self.main_box, text=f"{instrument.name} - Channel {channel_number}",
                           width="fill", align="top", color=TEXT_COLOUR, font=TITLE_FONT, size=TITLE_SIZE)
-        self.frequency = Text(self.main_box, text="N/A",
+        self.frequency_field = Text(self.main_box, text="N/A",
                               width="fill", align="top", color=TEXT_COLOUR, font=MAIN_FONT, size=MAIN_SIZE)
-        self.power = Text(self.main_box, text="N/A",
+        self.power_field = Text(self.main_box, text="N/A",
                               width="fill", align="top", color=TEXT_COLOUR, font=MAIN_FONT, size=MAIN_SIZE)
-        self.enabled = Text(self.main_box, text="N/A",
+        self.enabled_field = Text(self.main_box, text="N/A",
                               width="fill", align="top", color=TEXT_COLOUR, font=SUB_FONT, size=SUB_SIZE)
         print(f"Created box for {instrument.name} - Channel {channel_number}")
+        self.parent_box.tk.bind(self.event_name, self.update_gui)
+        self.get_info_thread.start()
 
-    def update(self):
-        self.frequency.value = f"{readable_freq(self.channel.get_freq())}"
-        self.power.value = f"{self.channel.get_power():.2f}dBm"
-        self.enabled.value = "Enabled" if self.channel.get_output_enabled_state() else "Disabled"
+    def get_info(self, parent_box):
+        while True:
+            self.frequency = f"{readable_freq(self.channel.get_freq())}"
+            self.power = f"{self.channel.get_power():.2f}dBm"
+            self.enabled = "ON" if self.channel.get_output_enabled_state() else "Off"
+            parent_box.tk.event_generate(self.event_name)
+            time.sleep(0.25)
+            
+    def update_gui(self, event):
+        self.frequency_field.value = self.frequency
+        self.power_field.value = self.power
+        self.enabled_field.value = self.enabled
 
 
     def destroy(self):
@@ -66,34 +91,40 @@ class PowerSupplyOverlay(Overlay):
         Takes an empty box, starts connection to instrument (if needed)
         and connects the callback function
         """
-        if not instrument.is_connected():
-            # Need to open connection to instrument
-            instrument.initialise()
-        super().__init__(parent_box)
+        self.event_name = f"<<{instrument.name}_{channel_number}>>"
+        super().__init__(instrument, parent_box)
         self.channel = instrument.reserve_channel(channel_number, "Overlay")
-        self.title = Text(self.main_box, text=f"{instrument.name} #{channel_number}",
+        self.title = Text(self.main_box, text=f"{instrument.name} - Channel {channel_number}",
                           width="fill", align="top", color=TEXT_COLOUR, font=TITLE_FONT, size=TITLE_SIZE)
-        self.voltage = Text(self.main_box, text="N/A",
+        self.voltage_field = Text(self.main_box, text="N/A",
                               width="fill", align="top", color=TEXT_COLOUR, font=MAIN_FONT, size=MAIN_SIZE)
-        self.current = Text(self.main_box, text="N/A",
+        self.current_field = Text(self.main_box, text="N/A",
                               width="fill", align="top", color=TEXT_COLOUR, font=MAIN_FONT, size=MAIN_SIZE)
-        self.enabled = Text(self.main_box, text="N/A",
+        self.enabled_field = Text(self.main_box, text="N/A",
                               width="fill", align="top", color=TEXT_COLOUR, font=SUB_FONT, size=SUB_SIZE)
-        self.main_box.repeat(5000, self.update)
-        print(f"Created box for {instrument.name} #{channel_number}")
+        print(f"Created box for {instrument.name} - Channel {channel_number}")
+        self.parent_box.tk.bind(self.event_name, self.update_gui)
+        self.get_info_thread.start()
 
-    def update(self):
-        enabled = self.channel.get_output_enabled_state()
-        if enabled:
-            self.enabled.value = "ON"
-            self.voltage.value = f"{self.channel.measure_voltage():0.3f}V"
-            self.current.value = f"{self.channel.measure_current():0.3f}A"
-        else:
-            self.enabled.value = "Off"
-            self.voltage.value = f"{self.channel.get_voltage():0.3f}V"
-            self.current.value = f"{self.channel.get_current_limit():0.3f}A"
-        
-
+    def get_info(self, parent_box):
+        while True:
+            enabled = self.channel.get_output_enabled_state()
+            if enabled:
+                self.enabled = "ON"
+                self.voltage = f"{self.channel.measure_voltage():.3f}V"
+                self.current = f"{self.channel.measure_current():.3f}A"
+            else:
+                self.enabled = "Off"
+                self.voltage = f"{self.channel.get_voltage():.3f}V"
+                self.current = f"{self.channel.get_current_limit():.3f}A"
+            
+            parent_box.tk.event_generate(self.event_name)
+            time.sleep(0.25)
+            
+    def update_gui(self, event):
+        self.voltage_field.value = self.voltage
+        self.current_field.value = self.current
+        self.enabled_field.value = self.enabled
 
 
     def destroy(self):

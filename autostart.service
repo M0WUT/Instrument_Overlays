@@ -1,0 +1,14 @@
+[Unit]
+Description=Starts M0WUT Overlay Viewer
+
+[Service]
+Environment=DISPLAY=:0.0
+Environment=XAUTHORITY=/home/pi/.Xauthority
+Type=simple
+ExecStart=python /home/pi/instrument_overlay/overlay.py
+Restart=always
+User=pi
+Group=pi
+
+[Install]
+WantedBy=graphical.target

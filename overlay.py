@@ -70,24 +70,23 @@ def handle_connection():
                         boxes[data] = SignalGeneratorOverlay(sdg2122x, 2, bottom_box)
                     elif data == "e4433b":
                         boxes[data] = SignalGeneratorOverlay(e4433b, 1, bottom_box)
-                    elif data == "psu2":
-                        boxes[data] = PowerSupplyOverlay(psu2, 1, bottom_box)
-                    elif data == "psu3":
-                        boxes[data] = PowerSupplyOverlay(psu3, 1, bottom_box)
+                    # elif data == "psu2":
+                    #     boxes[data] = PowerSupplyOverlay(psu2, 1, bottom_box)
+                    # elif data == "psu3":
+                    #     boxes[data] = PowerSupplyOverlay(psu3, 1, bottom_box)
                     else:
                         raise NotImplementedError
            
         except socket.timeout:
             pass
         
-def update():
-    for _, x in boxes.items():
-        x.update()
-
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-    sock.bind(("", PORT))
-    sock.listen()
-    sock.settimeout(0.25)
-    bottom_box.repeat(NETWORK_TIMEOUT * 1000, handle_connection)
-    #bottom_box.repeat(500, update)
+    app.tk.attributes("-fullscreen", True)
+    # sock.bind(("", PORT))
+    # sock.listen()
+    # sock.settimeout(1)
+    # bottom_box.repeat(NETWORK_TIMEOUT * 1000, handle_connection)
+    x = SignalGeneratorOverlay(sdg2122x, 1, bottom_box)
+    y = PowerSupplyOverlay(psu2, 1, bottom_box)
+    
     app.display()
