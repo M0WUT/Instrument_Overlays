@@ -1,11 +1,10 @@
-from guizero import App, Text, Box
-
-import socket
 import logging
-from instruments import SignalGeneratorOverlay, PowerSupplyOverlay
-from AutomatedTesting.Instruments.InstrumentConfig import sdg2122x, e4433b, psu2, psu3
+import socket
 
+from AutomatedTesting.Instruments.InstrumentConfig import e4433b, psu2, psu3, sdg2122x
+from guizero import App, Box, Text
 
+from instruments import PowerSupplyOverlay, SignalGeneratorOverlay
 
 NUM_BOXES = 4
 
@@ -23,11 +22,11 @@ psu3.only_software_control = False
 
 
 app = App(title="hello world", width=1920, height=1080, bg="green")
-bottom_box = Box(app, width="fill", align="bottom", height=250)
-
+bottom_box = Box(app, width="fill", align="bottom", height=180)
 
 
 conn = addr = None
+
 
 def handle_connection():
     # If there's no connection, listen for incoming
@@ -39,7 +38,7 @@ def handle_connection():
     global bottom_box
     if not conn:
         try:
-            conn, addr = sock.accept() 
+            conn, addr = sock.accept()
             print(f"Incoming connection from {addr[0]}")
             conn.settimeout(0.5)
         except socket.timeout:
@@ -70,23 +69,23 @@ def handle_connection():
                         boxes[data] = SignalGeneratorOverlay(sdg2122x, 2, bottom_box)
                     elif data == "e4433b":
                         boxes[data] = SignalGeneratorOverlay(e4433b, 1, bottom_box)
-                    # elif data == "psu2":
-                    #     boxes[data] = PowerSupplyOverlay(psu2, 1, bottom_box)
-                    # elif data == "psu3":
-                    #     boxes[data] = PowerSupplyOverlay(psu3, 1, bottom_box)
+                    elif data == "psu2":
+                        boxes[data] = PowerSupplyOverlay(psu2, 1, bottom_box)
+                    elif data == "psu3":
+                        boxes[data] = PowerSupplyOverlay(psu3, 1, bottom_box)
                     else:
                         raise NotImplementedError
-           
+
         except socket.timeout:
             pass
-        
+
+
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
     app.tk.attributes("-fullscreen", True)
-    # sock.bind(("", PORT))
-    # sock.listen()
-    # sock.settimeout(1)
-    # bottom_box.repeat(NETWORK_TIMEOUT * 1000, handle_connection)
-    x = SignalGeneratorOverlay(sdg2122x, 1, bottom_box)
-    y = PowerSupplyOverlay(psu2, 1, bottom_box)
-    
+    app.tk.attributes("-type", "dock")
+
+    sock.bind(("", PORT))
+    sock.listen()
+    sock.settimeout(0.1)
+    bottom_box.repeat(NETWORK_TIMEOUT * 1000, handle_connection)
     app.display()
