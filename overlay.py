@@ -58,9 +58,10 @@ def handle_connection():
                     del boxes[data]
                     print(f"Removed box for {data}")
                 elif data == "clearall":
-                    for x in boxes:
+                    box_list = list(boxes.keys())
+                    for x in box_list:
                         boxes[x].destroy()
-                        del boxes[data]
+                        del boxes[x]
                 else:
                     # Open new connection to instruments
                     if data == "sdg2122x1":
