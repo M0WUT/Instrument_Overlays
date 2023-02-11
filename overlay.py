@@ -1,10 +1,16 @@
 import logging
 import socket
 
-from AutomatedTesting.Instruments.InstrumentConfig import e4433b, psu2, psu3, sdg2122x
+from AutomatedTesting.Instruments.InstrumentConfig import (
+    e4433b,
+    psu2,
+    psu3,
+    sdg2122x,
+    dmm,
+)
 from guizero import App, Box, Text
 
-from instruments import PowerSupplyOverlay, SignalGeneratorOverlay
+from instruments import PowerSupplyOverlay, SignalGeneratorOverlay, DMMOverlay
 
 NUM_BOXES = 4
 
@@ -19,13 +25,20 @@ sdg2122x.only_software_control = False
 e4433b.only_software_control = False
 psu2.only_software_control = False
 psu3.only_software_control = False
-
+# dmm.only_software_control = False
 
 app = App(title="hello world", width=1920, height=1080, bg="green")
 bottom_box = Box(app, width="fill", align="bottom", height=180)
 
 
 conn = addr = None
+
+
+def clear_dmm_boxes():
+    dmm_boxes = [x for x in boxes if x.startswith("dmm_")]
+    for x in dmm_boxes:
+        boxes[x].destroy()
+        del boxes[x]
 
 
 def handle_connection():
@@ -74,8 +87,18 @@ def handle_connection():
                         boxes[data] = PowerSupplyOverlay(psu2, 1, bottom_box)
                     elif data == "psu3":
                         boxes[data] = PowerSupplyOverlay(psu3, 1, bottom_box)
+                    elif data == "dmm_dcv":
+                        clear_dmm_boxes()
+                        boxes[data] = DMMOverlay(
+                            dmm, dmm.measure_dc_voltage, "V", bottom_box
+                        )
+                    elif data == "dmm_dci":
+                        clear_dmm_boxes()
+                        boxes[data] = DMMOverlay(
+                            dmm, dmm.measure_dc_current, "A", bottom_box
+                        )
                     else:
-                        raise NotImplementedError
+                        raise NotImplementedError(data)
 
         except socket.timeout:
             pass
