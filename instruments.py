@@ -227,7 +227,7 @@ class DMMOverlay(Overlay):
     def __init__(
         self,
         instrument: BaseInstrument,
-        measurement_function,
+        config_function,
         measurement_units: str,
         parent_box: Box,
     ):
@@ -236,10 +236,10 @@ class DMMOverlay(Overlay):
         and connects the callback function
         """
         self.event_name = f"<<{instrument.name}>>"
-        self.measurement_function = measurement_function
+
         self.measurement_units = measurement_units
         super().__init__(instrument, parent_box)
-        self.instrument.set_remote_control()
+        config_function()
         self.title = Text(
             self.main_box,
             text=f"{instrument.name}",
@@ -266,13 +266,12 @@ class DMMOverlay(Overlay):
         while True:
 
             self.measurement = prefixify(
-                self.measurement_function(),
+                self.instrument.measure_value(),
                 units=self.measurement_units,
                 decimal_places=3,
             )
             if self.stop_threads:
                 break
-
 
             parent_box.tk.event_generate(self.event_name)
 

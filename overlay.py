@@ -2,15 +2,15 @@ import logging
 import socket
 
 from AutomatedTesting.Instruments.InstrumentConfig import (
+    dmm,
     e4433b,
     psu2,
     psu3,
     sdg2122x,
-    dmm,
 )
 from guizero import App, Box, Text
 
-from instruments import PowerSupplyOverlay, SignalGeneratorOverlay, DMMOverlay
+from instruments import DMMOverlay, PowerSupplyOverlay, SignalGeneratorOverlay
 
 NUM_BOXES = 4
 
@@ -90,12 +90,24 @@ def handle_connection():
                     elif data == "dmm_dcv":
                         clear_dmm_boxes()
                         boxes[data] = DMMOverlay(
-                            dmm, dmm.measure_dc_voltage, "V", bottom_box
+                            dmm, dmm.configure_dc_voltage, "V", bottom_box
                         )
                     elif data == "dmm_dci":
                         clear_dmm_boxes()
                         boxes[data] = DMMOverlay(
-                            dmm, dmm.measure_dc_current, "A", bottom_box
+                            dmm, dmm.configure_dc_current, "A", bottom_box
+                        )
+                    elif data == "dmm_res":
+                        clear_dmm_boxes()
+
+                        boxes[data] = DMMOverlay(
+                            dmm, dmm.configure_resistance, "Ω", bottom_box
+                        )
+                    elif data == "dmm_diode":
+                        clear_dmm_boxes()
+
+                        boxes[data] = DMMOverlay(
+                            dmm, dmm.configure_diode_voltage, "V", bottom_box
                         )
                     else:
                         raise NotImplementedError(data)
